@@ -1,0 +1,55 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  infra:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Terraform Apply
+        run: |
+          cd terraform/envs/dev
+          terraform init
+          terraform apply -auto-approve
+        env:
+          YC_KEY: ${{ secrets.YC_KEY }}
+          YC_S3_KEY: ${{ secrets.YC_S3_KEY }}
+          YC_S3_SECRET: ${{ secrets.YC_S3_SECRET }}
+
+  deploy:
+    needs: infra
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:20.10-dind
+        options: --privileged
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build & Start MLflow
+        run: |
+          cd deploy/mlflow
+          docker-compose up -d --build
+        env:
+          YC_S3_KEY: ${{ secrets.YC_S3_KEY }}
+          YC_S3_SECRET: ${{ secrets.YC_S3_SECRET }}
+
+  test-ml:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run ML Training
+        run: |
+          cd unidoc/ml
+          python train.py 
