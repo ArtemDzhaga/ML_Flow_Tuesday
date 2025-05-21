@@ -16,8 +16,8 @@ services:
     environment:
       BACKEND_STORE_URI: postgresql://mlflow:changeme@postgres:5432/mlflow
       ARTIFACT_ROOT: s3://mlflowtuesday-artifacts/artifacts
-      AWS_ACCESS_KEY_ID: YCAJEdwnK2r53UPhtCKqbYSRH
-      AWS_SECRET_ACCESS_KEY: YCM7DZrwWSxQOzijDub6lKwBVyQ5KZ9POMgDSQU1
+      AWS_ACCESS_KEY_ID: ${YC_S3_KEY}
+      AWS_SECRET_ACCESS_KEY: ${YC_S3_SECRET}
     depends_on:
       - postgres
 
