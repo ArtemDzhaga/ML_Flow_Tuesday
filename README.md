@@ -14,73 +14,123 @@
 │   ├── docker-compose.yml
 │   └── Dockerfile
 ├── terraform/           # Инфраструктура Yandex Cloud (S3)
-│   ├── modules/bucket/
-│   └── envs/dev/
+│   ├── modules/bucket/  # Модуль для создания S3 бакета
+│   └── envs/dev/        # Конфигурация для dev окружения
 ├── unidoc/ml/           # ML-эксперименты (train.py)
 ├── requirements.txt     # Python-зависимости
 └── .github/workflows/   # CI/CD pipeline
 ```
 
-## Быстрый старт
+## Требования
 
-1. **Создайте .env в корне:**
-   ```
+- Python 3.11+
+- Docker и Docker Compose
+- Terraform 1.0+
+- Yandex Cloud CLI (опционально)
+
+## Настройка окружения
+
+1. **Создайте `.env` файл в корне проекта:**
+   ```env
    DB_NAME=mlflow
    DB_USER=mlflow
    DB_PASSWORD=changeme
    DB_HOST=localhost
    DB_PORT=5432
-   AWS_ACCESS_KEY_ID=... # ключ из Yandex Cloud
-   AWS_SECRET_ACCESS_KEY=... # секрет из Yandex Cloud
+   AWS_ACCESS_KEY_ID=YOUR_YC_S3_KEY
+   AWS_SECRET_ACCESS_KEY=YOUR_YC_S3_SECRET
    ```
-2. **Запустите MLflow и Postgres:**
+
+2. **Настройте GitHub Secrets для CI/CD:**
+   - `YC_KEY`: Yandex Cloud API ключ
+   - `YC_S3_KEY`: Access key для Yandex Object Storage
+   - `YC_S3_SECRET`: Secret key для Yandex Object Storage
+
+## Развертывание инфраструктуры
+
+1. **Инициализация Terraform:**
+   ```bash
+   cd terraform/envs/dev
+   terraform init
+   ```
+
+2. **Применение конфигурации:**
+   ```bash
+   terraform apply
+   ```
+
+## Запуск MLflow
+
+1. **Запуск MLflow и Postgres:**
    ```bash
    cd deploy/mlflow
    docker-compose up -d --build
    ```
    MLflow будет доступен на http://localhost:5001
-3. **Выполните миграции и сгенерируйте тестовые данные:**
+
+## Разработка
+
+1. **Установка зависимостей:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Миграции базы данных:**
    ```bash
    python manage.py migrate
+   ```
+
+3. **Генерация тестовых данных:**
+   ```bash
    python manage.py shell -c "from core.management.commands.generate_test_data import Command; Command().handle()"
    ```
-4. **Запустите обучение ML-модуля:**
+
+4. **Запуск обучения ML-модели:**
    ```bash
    PYTHONPATH=$(pwd) python unidoc/ml/train.py
    ```
-5. **Проверьте результаты в MLflow UI:**
-   - http://localhost:5001
-   - Эксперименты, параметры, метрики, модели
+
+## CI/CD Pipeline
+
+Pipeline состоит из трех этапов:
+
+1. **Infra**: Создание S3 бакета в Yandex Cloud
+2. **Deploy**: Развертывание MLflow и Postgres
+3. **Test ML**: Обучение и тестирование ML-модели
+
+## MLflow в проекте
+
+MLflow используется для:
+- Отслеживания экспериментов с ML моделями
+- Сохранения метрик и параметров моделей
+- Хранения артефактов (моделей) в S3
+- Предоставления UI для анализа результатов
+
+## API Endpoints
+
+- Swagger UI: `/api/`
+- ReDoc: `/api/redoc/`
+- ML Prediction: POST `/api/predict-document-class/`
 
 ## Безопасность
-- **Никогда не коммитьте ключи доступа в git!**
-- Используйте `.env` и GitHub Secrets для хранения ключей.
-- Если ключи были скомпрометированы — немедленно удалите их в Yandex Cloud и создайте новые.
-- Очищайте историю git от секретов с помощью BFG Repo-Cleaner.
 
-## MLflow: зачем он нужен?
-- **Контроль версий экспериментов:** все параметры, метрики, модели и артефакты логируются автоматически.
-- **Воспроизводимость:** любой эксперимент можно воспроизвести по сохранённым параметрам и данным.
-- **Централизованное хранилище:** все модели и артефакты хранятся в S3, доступны для CI/CD и продакшн.
-- **Интеграция с CI/CD:** при каждом пуше пайплайн автоматически запускает обучение и логирование в MLflow.
-- **Удобный UI:** можно сравнивать эксперименты, отслеживать метрики, скачивать модели.
+- Все секреты хранятся в GitHub Secrets
+- Локальные секреты в `.env` (не коммитятся в git)
+- Используется HTTPS в production
+- JWT аутентификация для API
 
-## ML/AI возможности
-- Классификация документов по содержимому (TF-IDF, RandomForest)
-- Логирование экспериментов, моделей и метрик в MLflow
-- API для предсказаний: POST `/predict-document-class/` с полем `text`
+## Мониторинг и логирование
 
-## Пример запроса к API
-```bash
-curl -X POST http://localhost:8000/predict-document-class/ \
-     -H 'Content-Type: application/json' \
-     -d '{"text": "Пример текста документа для классификации"}'
-```
+- MLflow UI для мониторинга ML экспериментов
+- Django logging для приложения
+- Terraform state в Yandex Cloud
 
-## CI/CD
-- Автоматически применяет Terraform (создаёт S3 в Yandex Cloud)
-- Разворачивает MLflow + Postgres
-- Запускает обучение ML-модуля
+## Дальнейшие улучшения
+
+1. Добавление мониторинга через Prometheus/Grafana
+2. Интеграция с BERT/transformers для улучшения классификации
+3. Автоматическое масштабирование MLflow
+4. Добавление тестов для ML компонентов
 
 ---
 **Вопросы, доработки, интеграция с BERT/transformers — пишите!**
