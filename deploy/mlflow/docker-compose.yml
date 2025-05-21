@@ -8,11 +8,13 @@ services:
       POSTGRES_PASSWORD: changeme
     volumes:
       - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
 
   mlflow:
-    image: mlflow/mlflow:latest
+    build: .
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       BACKEND_STORE_URI: postgresql://mlflow:changeme@postgres:5432/mlflow
       ARTIFACT_ROOT: s3://mlflowtuesday-artifacts/artifacts
@@ -20,6 +22,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${YC_S3_SECRET}
     depends_on:
       - postgres
+    command: mlflow server --backend-store-uri=postgresql://mlflow:changeme@postgres:5432/mlflow --default-artifact-root=s3://mlflowtuesday-artifacts/artifacts --host 0.0.0.0 --port 5000
 
 volumes:
   pgdata: 
