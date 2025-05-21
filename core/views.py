@@ -13,6 +13,9 @@ from .serializers import (
     SubtaskSerializer, CommentSerializer, DocumentSerializer,
     DocumentVersionSerializer, TemplateSerializer, FavoriteSerializer
 )
+from rest_framework.views import APIView
+from rest_framework import status
+import mlflow.pyfunc
 
 # Create your views here.
 
@@ -119,3 +122,24 @@ class FavoriteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class PredictDocumentClassView(APIView):
+    """
+    API endpoint для предсказания класса документа по тексту.
+    """
+    def post(self, request):
+        text = request.data.get('text')
+        if not text:
+            return Response({'error': 'Поле text обязательно.'}, status=status.HTTP_400_BAD_REQUEST)
+        # Загружаем последнюю модель и векторизатор из MLflow
+        model_uri = "models:/unidoc-document-tfidf-classification/Production"
+        try:
+            model = mlflow.pyfunc.load_model(model_uri)
+        except Exception as e:
+            return Response({'error': f'Ошибка загрузки модели: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Предсказываем класс
+        try:
+            prediction = model.predict([text])[0]
+        except Exception as e:
+            return Response({'error': f'Ошибка предсказания: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'prediction': int(prediction)})

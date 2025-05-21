@@ -1,86 +1,87 @@
-# MLflow Integration with Yandex Cloud
-
-Этот проект демонстрирует интеграцию MLflow с Yandex Cloud для отслеживания ML-экспериментов, хранения артефактов и не только!
+# UniDoc + MLflow: Интеллектуальная платформа документооборота
 
 ## Структура проекта
 
 ```
 .
-├── deploy/
-│   └── mlflow/
-│       └── docker-compose.yml    # Конфигурация MLflow сервера
-├── terraform/
-│   ├── modules/
-│   │   └── bucket/              # Модуль для создания S3 бакета
-│   └── envs/
-│       └── dev/                 # Конфигурация для dev окружения
-└── .github/
-    └── workflows/
-        └── ci.yml              # CI/CD пайплайн
+├── core/                # Основное Django-приложение
+│   ├── models.py        # Модели данных
+│   ├── views.py         # API, включая ML endpoint
+│   ├── urls.py          # Маршруты
+│   └── ...
+├── unidoc/              # Django настройки
+├── deploy/mlflow/       # MLflow + Postgres (Docker Compose)
+│   ├── docker-compose.yml
+│   └── Dockerfile
+├── terraform/           # Инфраструктура Yandex Cloud (S3)
+│   ├── modules/bucket/
+│   └── envs/dev/
+├── unidoc/ml/           # ML-эксперименты (train.py)
+├── requirements.txt     # Python-зависимости
+└── .github/workflows/   # CI/CD pipeline
 ```
 
-## Особенности реализации
+## Быстрый старт
 
-1. **Terraform модуль для S3**:
-   - Модульная структура с разделением переменных
-   - Поддержка версионирования объектов
-   - Настраиваемые метки ресурсов
-
-2. **MLflow сервер**:
-   - PostgreSQL для хранения метаданных
-   - S3 для хранения артефактов
-   - Docker Compose для простого развертывания
-
-3. **CI/CD интеграция**:
-   - Автоматическое создание инфраструктуры
-   - Развертывание MLflow сервера
-   - Запуск ML-тренировок
-
-## Использование MLflow
-
-MLflow помогает в реализации развития проекта по ведению задач и документации следующим образом:
-
-1. **Отслеживание экспериментов**:
-   - Логирование параметров моделей
-   - Сохранение метрик
-   - Сравнение результатов разных запусков
-
-2. **Управление моделями**:
-   - Версионирование моделей
-   - Сохранение артефактов в S3
-   - Воспроизводимость экспериментов
-
-3. **Интеграция с CI/CD**:
-   - Автоматическое тестирование моделей
-   - Отслеживание качества в процессе разработки
-   - Упрощение деплоя моделей
-
-## Установка и запуск
-
-1. Настройка Yandex Cloud:
-   ```bash
-   export YC_TOKEN="your-token"
-   export YC_CLOUD_ID="your-cloud-id"
-   export YC_FOLDER_ID="your-folder-id"
+1. **Создайте .env в корне:**
    ```
-
-2. Создание инфраструктуры:
-   ```bash
-   cd terraform/envs/dev
-   terraform init
-   terraform apply
+   DB_NAME=mlflow
+   DB_USER=mlflow
+   DB_PASSWORD=changeme
+   DB_HOST=localhost
+   DB_PORT=5432
+   AWS_ACCESS_KEY_ID=... # ключ из Yandex Cloud
+   AWS_SECRET_ACCESS_KEY=... # секрет из Yandex Cloud
    ```
-
-3. Запуск MLflow:
+2. **Запустите MLflow и Postgres:**
    ```bash
    cd deploy/mlflow
-   docker-compose up -d
+   docker-compose up -d --build
    ```
+   MLflow будет доступен на http://localhost:5001
+3. **Выполните миграции и сгенерируйте тестовые данные:**
+   ```bash
+   python manage.py migrate
+   python manage.py shell -c "from core.management.commands.generate_test_data import Command; Command().handle()"
+   ```
+4. **Запустите обучение ML-модуля:**
+   ```bash
+   PYTHONPATH=$(pwd) python unidoc/ml/train.py
+   ```
+5. **Проверьте результаты в MLflow UI:**
+   - http://localhost:5001
+   - Эксперименты, параметры, метрики, модели
 
-## Требования
+## Безопасность
+- **Никогда не коммитьте ключи доступа в git!**
+- Используйте `.env` и GitHub Secrets для хранения ключей.
+- Если ключи были скомпрометированы — немедленно удалите их в Yandex Cloud и создайте новые.
+- Очищайте историю git от секретов с помощью BFG Repo-Cleaner.
 
-- Terraform >= 1.0
-- Docker
-- Yandex Cloud CLI
-- Python 3.11+
+## MLflow: зачем он нужен?
+- **Контроль версий экспериментов:** все параметры, метрики, модели и артефакты логируются автоматически.
+- **Воспроизводимость:** любой эксперимент можно воспроизвести по сохранённым параметрам и данным.
+- **Централизованное хранилище:** все модели и артефакты хранятся в S3, доступны для CI/CD и продакшн.
+- **Интеграция с CI/CD:** при каждом пуше пайплайн автоматически запускает обучение и логирование в MLflow.
+- **Удобный UI:** можно сравнивать эксперименты, отслеживать метрики, скачивать модели.
+
+## ML/AI возможности
+- Классификация документов по содержимому (TF-IDF, RandomForest)
+- Логирование экспериментов, моделей и метрик в MLflow
+- API для предсказаний: POST `/predict-document-class/` с полем `text`
+
+## Пример запроса к API
+```bash
+curl -X POST http://localhost:8000/predict-document-class/ \
+     -H 'Content-Type: application/json' \
+     -d '{"text": "Пример текста документа для классификации"}'
+```
+
+## CI/CD
+- Автоматически применяет Terraform (создаёт S3 в Yandex Cloud)
+- Разворачивает MLflow + Postgres
+- Запускает обучение ML-модуля
+
+---
+**Вопросы, доработки, интеграция с BERT/transformers — пишите!**
 
