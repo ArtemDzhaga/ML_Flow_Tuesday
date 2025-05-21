@@ -8,3 +8,7 @@ labels = {
   project     = "mlflow"
   managed_by  = "terraform"
 } 
+
+cloud_id = "b1g8kdo0ckfgjfnvqr1v"
+folder_id = "b1g4tvr6mu2676bbtqqu"
+yc_token = ""
