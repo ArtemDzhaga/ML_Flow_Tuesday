@@ -1,4 +1,6 @@
 import os
+import mlflow
+
 mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001"))
 # Инициализация Django для standalone-скрипта
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "unidoc.settings")
