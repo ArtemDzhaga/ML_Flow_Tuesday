@@ -24,18 +24,19 @@ class TopicModelTest(TestCase):
 
 class ProjectModelTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
+        self.topic = Topic.objects.create(name="Test Topic")
         self.project = Project.objects.create(
-            name='Test Project',
-            description='Test Description'
+            name="Test Project",
+            description="Test Description",
+            topic=self.topic
         )
 
     def test_project_creation(self):
-        self.assertEqual(self.project.name, 'Test Project')
-        self.assertEqual(self.project.description, 'Test Description')
+        self.assertEqual(self.project.name, "Test Project")
+        self.assertEqual(self.project.description, "Test Description")
+        self.assertEqual(self.project.topic, self.topic)
+        self.assertTrue(isinstance(self.project, Project))
+        self.assertEqual(str(self.project), self.project.name)
 
     def test_get_active_tasks_count(self):
         self.assertEqual(self.project.get_active_tasks_count(), 0)
@@ -136,23 +137,20 @@ class CommentModelTest(TestCase):
 
 class DocumentModelTest(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='testuser',
-            password='testpass123'
-        )
+        self.topic = Topic.objects.create(name="Test Topic")
         self.project = Project.objects.create(
-            name='Test Project',
-            description='Test Description'
+            name="Test Project",
+            topic=self.topic
         )
         self.document = Document.objects.create(
-            title='Test Document',
-            content='Test Content',
+            title="Test Document",
+            content="Test Content",
             project=self.project
         )
 
     def test_document_creation(self):
-        self.assertEqual(self.document.title, 'Test Document')
-        self.assertEqual(self.document.content, 'Test Content')
+        self.assertEqual(self.document.title, "Test Document")
+        self.assertEqual(self.document.content, "Test Content")
         self.assertEqual(self.document.project, self.project)
         self.assertTrue(isinstance(self.document, Document))
         self.assertEqual(str(self.document), self.document.title)
@@ -163,23 +161,30 @@ class DocumentVersionModelTest(TestCase):
             username='testuser',
             password='testpass123'
         )
+        self.topic = Topic.objects.create(name="Test Topic")
         self.project = Project.objects.create(
-            name='Test Project',
-            description='Test Description'
+            name="Test Project",
+            topic=self.topic
         )
         self.document = Document.objects.create(
-            title='Test Document',
-            content='Test Content',
+            title="Test Document",
+            content="Test Content",
             project=self.project
         )
         self.version = DocumentVersion.objects.create(
             document=self.document,
-            content='Test Version Content'
+            content="Test Version Content",
+            version_number=1,
+            created_by=self.user
         )
 
     def test_version_creation(self):
-        self.assertEqual(self.version.content, 'Test Version Content')
         self.assertEqual(self.version.document, self.document)
+        self.assertEqual(self.version.content, "Test Version Content")
+        self.assertEqual(self.version.version_number, 1)
+        self.assertEqual(self.version.created_by, self.user)
+        self.assertTrue(isinstance(self.version, DocumentVersion))
+        self.assertEqual(str(self.version), f"Version {self.version.version_number} of {self.document.title}")
 
 class TemplateModelTest(TestCase):
     def setUp(self):

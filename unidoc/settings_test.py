@@ -8,19 +8,12 @@ DATABASES = {
     }
 }
 
-# Отключаем кэширование для тестов
+# Отключаем кэширование
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
     }
 }
-
-# Отключаем отправку email
-EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
-
-# Отключаем Celery
-CELERY_TASK_ALWAYS_EAGER = True
-CELERY_TASK_EAGER_PROPAGATES = True
 
 # Отключаем статические файлы
 STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
