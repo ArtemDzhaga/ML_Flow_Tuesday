@@ -1,4 +1,4 @@
-bucket_name = "mlflowtuesday-artifacts"
+bucket_name = "mlflowtuesday-artifacts1"
 region     = "ru-central1"
 # s3_key и s3_secret должны задаваться через переменные окружения или secrets
 zone       = "ru-central1-a"
