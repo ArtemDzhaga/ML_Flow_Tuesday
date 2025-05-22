@@ -50,6 +50,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Wait for MLflow
+        run: sleep 20
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
