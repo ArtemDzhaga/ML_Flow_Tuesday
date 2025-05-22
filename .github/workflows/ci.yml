@@ -29,6 +29,21 @@ jobs:
           YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
 
   test-ml:
+    needs: infra
+    services:
+      postgres:
+        image: postgres:15
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_DB: mlflow
+          POSTGRES_USER: mlflow
+          POSTGRES_PASSWORD: changeme
+        options: >-
+          --health-cmd "pg_isready -U mlflow"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -68,5 +83,10 @@ jobs:
           MLFLOW_TRACKING_URI: http://localhost:5001
           AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
+          DB_NAME: mlflow
+          DB_USER: mlflow
+          DB_PASSWORD: changeme
+          DB_HOST: localhost
+          DB_PORT: 5432
         run: |
           PYTHONPATH=$(pwd) python unidoc/ml/train.py
