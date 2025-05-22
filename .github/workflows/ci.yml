@@ -48,10 +48,23 @@ jobs:
   test-ml:
     needs: deploy
     runs-on: ubuntu-latest
+    services:
+      mlflow:
+        image: ghcr.io/mlflow/mlflow:v2.10.2
+        ports:
+          - 5001:5000
+        env:
+          BACKEND_STORE_URI: sqlite:///mlflow.db
+          ARTIFACT_ROOT: s3://mlflowtuesday-artifacts/artifacts
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
+        options: >-
+          --health-cmd "curl --fail http://localhost:5000/ || exit 1"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v3
-      - name: Wait for MLflow
-        run: sleep 20
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -61,5 +74,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run ML Training
+        env:
+          MLFLOW_TRACKING_URI: http://localhost:5000
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
         run: |
           PYTHONPATH=$(pwd) python unidoc/ml/train.py
