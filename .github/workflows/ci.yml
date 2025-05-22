@@ -93,17 +93,33 @@ jobs:
     needs: [deploy]
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:13
+        env:
+          POSTGRES_USER: mlflow
+          POSTGRES_PASSWORD: 1234
+          POSTGRES_DB: mlflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       mlflow:
         image: ghcr.io/mlflow/mlflow:v2.10.2
         ports:
           - 5001:5001
         env:
-          BACKEND_STORE_URI: sqlite:///mlflow.db
+          BACKEND_STORE_URI: postgresql://mlflow:1234@localhost:5432/mlflow
+          DEFAULT_ARTIFACT_ROOT: s3://mlflow-artifacts
+          AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
         options: >-
           --health-cmd "curl --fail http://localhost:5001/health || exit 1"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 10
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python
