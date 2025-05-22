@@ -132,6 +132,52 @@ MLflow используется для:
 3. Автоматическое масштабирование MLflow
 4. Добавление тестов для ML компонентов
 
+## Важно: переменные окружения для Terraform и CI/CD
+
+Для корректной работы пайплайна и Terraform необходимо задать значения переменных:
+- `cloud_id` — идентификатор облака Yandex Cloud
+- `folder_id` — идентификатор каталога Yandex Cloud
+
+### Как задать переменные:
+
+**Вариант 1: через GitHub Secrets**
+1. В настройках репозитория GitHub перейдите в Settings → Secrets and variables → Actions.
+2. Добавьте секреты:
+   - `YC_CLOUD_ID` — ваш cloud_id
+   - `YC_FOLDER_ID` — ваш folder_id
+3. В workflow (`.github/workflows/ci.yml`) добавьте их в секцию `env` для job `infra`:
+   ```yaml
+   env:
+     YC_KEY: ${{ secrets.YC_KEY }}
+     YC_S3_KEY: ${{ secrets.YC_S3_KEY }}
+     YC_S3_SECRET: ${{ secrets.YC_S3_SECRET }}
+     YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+     YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
+   ```
+4. В файле `terraform/envs/dev/main.tf` убедитесь, что используется:
+   ```hcl
+   provider "yandex" {
+     token     = var.yc_token
+     cloud_id  = var.cloud_id
+     folder_id = var.folder_id
+     zone      = var.zone
+   }
+   ```
+
+**Вариант 2: через файл terraform.tfvars**
+
+В файле `terraform/envs/dev/terraform.tfvars` добавьте:
+```hcl
+cloud_id  = "ваш_cloud_id"
+folder_id = "ваш_folder_id"
+```
+
+---
+
+## Если пайплайн зависает на var.cloud_id
+
+Это значит, что переменная не задана. Задайте её одним из способов выше и перезапустите пайплайн.
+
 ---
 **Вопросы, доработки, интеграция с BERT/transformers — пишите!**
 
