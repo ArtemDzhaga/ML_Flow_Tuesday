@@ -13,7 +13,11 @@ jobs:
         uses: hashicorp/setup-terraform@v3
       - name: Terraform Apply
         run: |
-          cd terraform/envs/dev
+          export TF_VAR_yc_token=$YC_KEY
+          export TF_VAR_s3_key=$YC_S3_KEY
+          export TF_VAR_s3_secret=$YC_S3_SECRET
+          export TF_VAR_cloud_id=$YC_CLOUD_ID
+          export TF_VAR_folder_id=$YC_FOLDER_ID
           terraform init
           terraform apply -auto-approve
         env:
