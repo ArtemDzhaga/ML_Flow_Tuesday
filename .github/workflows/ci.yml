@@ -20,6 +20,8 @@ jobs:
           YC_KEY: ${{ secrets.YC_KEY }}
           YC_S3_KEY: ${{ secrets.YC_S3_KEY }}
           YC_S3_SECRET: ${{ secrets.YC_S3_SECRET }}
+          YC_CLOUD_ID: ${{ secrets.YC_CLOUD_ID }}
+          YC_FOLDER_ID: ${{ secrets.YC_FOLDER_ID }}
 
   deploy:
     needs: infra
