@@ -60,5 +60,4 @@ jobs:
           pip install -r requirements.txt
       - name: Run ML Training
         run: |
-          cd unidoc/ml
-          python train.py 
+          PYTHONPATH=$(pwd) python unidoc/ml/train.py
