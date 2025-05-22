@@ -64,6 +64,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            nc -z postgres 5432 && echo "Postgres is up!" && break
+            echo "Waiting for Postgres..."
+            sleep 2
+          done
       - name: Run ML Training
         env:
           MLFLOW_TRACKING_URI: http://localhost:5001
@@ -71,8 +78,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
           DB_NAME: mlflow
           DB_USER: mlflow
-          DB_PASSWORD: changeme
-          DB_HOST: localhost
+          DB_PASSWORD: 1234
+          DB_HOST: postgres
           DB_PORT: 5432
         run: |
           PYTHONPATH=$(pwd) python unidoc/ml/train.py
