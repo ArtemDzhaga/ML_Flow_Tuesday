@@ -31,12 +31,12 @@ jobs:
   deploy:
     needs: infra
     runs-on: ubuntu-latest
-    services:
-      docker:
-        image: docker:20.10-dind
-        options: --privileged
     steps:
       - uses: actions/checkout@v3
+      - name: Install Docker Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
       - name: Build & Start MLflow
         run: |
           cd deploy/mlflow
