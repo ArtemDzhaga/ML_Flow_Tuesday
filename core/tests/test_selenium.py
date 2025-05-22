@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from django.contrib.auth.models import User
-from ..factories import UserFactory
+from core.factories import UserFactory
 from django.conf import settings
 import time
 

@@ -79,11 +79,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       - name: Run tests
+        env:
+          DB_NAME: mlflow
+          DB_USER: mlflow
+          DB_PASSWORD: 1234
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DJANGO_SETTINGS_MODULE: unidoc.settings_test
         run: |
           python manage.py test
 
   ml-training:
-    needs: [deploy, test]
+    needs: [deploy]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
