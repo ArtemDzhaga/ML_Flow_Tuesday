@@ -37,7 +37,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y docker-compose
-      - name: Build & Start MLflow
+      - name: Build & Start MLflow + Postgres
         run: |
           cd deploy/mlflow
           docker-compose up -d --build
@@ -72,7 +72,7 @@ jobs:
           DB_NAME: mlflow
           DB_USER: mlflow
           DB_PASSWORD: changeme
-          DB_HOST: localhost
+          DB_HOST: postgres
           DB_PORT: 5432
         run: |
           PYTHONPATH=$(pwd) python unidoc/ml/train.py

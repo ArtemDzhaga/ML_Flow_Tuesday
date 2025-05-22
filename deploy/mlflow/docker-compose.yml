@@ -8,8 +8,6 @@ services:
       POSTGRES_PASSWORD: changeme
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
 
   mlflow:
     build: .
@@ -23,3 +21,6 @@ services:
     depends_on:
       - postgres
     command: mlflow server --backend-store-uri=postgresql://mlflow:changeme@postgres:5432/mlflow --default-artifact-root=s3://mlflowtuesday-artifacts/artifacts --host 0.0.0.0 --port 5000
+
+volumes:
+  pgdata: 
