@@ -37,8 +37,8 @@
    DB_PASSWORD=changeme
    DB_HOST=localhost
    DB_PORT=5432
-   AWS_ACCESS_KEY_ID=YOUR_YC_S3_KEY
-   AWS_SECRET_ACCESS_KEY=YOUR_YC_S3_SECRET
+   AWS_ACCESS_KEY_ID=ваш_s3_key
+   AWS_SECRET_ACCESS_KEY=ваш_s3_secret
    ```
 
 2. **Настройте GitHub Secrets для CI/CD:**
@@ -171,4 +171,114 @@ MLflow используется для:
 cloud_id  = "ваш_cloud_id"
 folder_id = "ваш_folder_id"
 ```
+
+## Быстрый старт (локально)
+
+1. **Создайте файл `.env` в корне:**
+   ```env
+   DB_NAME=mlflow
+   DB_USER=mlflow
+   DB_PASSWORD=changeme
+   DB_HOST=localhost
+   DB_PORT=5432
+   AWS_ACCESS_KEY_ID=ваш_s3_key
+   AWS_SECRET_ACCESS_KEY=ваш_s3_secret
+   ```
+
+2. **Запустите Postgres и MLflow:**
+   ```bash
+   cd deploy/mlflow
+   docker-compose up -d --build
+   ```
+
+3. **Выполните миграции и сгенерируйте тестовые данные:**
+   ```bash
+   python manage.py migrate
+   python manage.py shell -c "from core.management.commands.generate_test_data import Command; Command().handle()"
+   ```
+
+4. **Запустите обучение ML-модуля:**
+   ```bash
+   PYTHONPATH=$(pwd) python unidoc/ml/train.py
+   ```
+
+## CI/CD Pipeline
+
+- **infra**: применяет Terraform, создаёт S3 бакет
+- **deploy**: поднимает MLflow (docker-compose)
+- **test-ml**: устанавливает зависимости, запускает обучение
+
+### Важно!
+- В job test-ml MLflow должен быть добавлен как сервис через секцию `services` (см. ниже).
+- Все переменные для S3 должны быть заданы через GitHub Secrets.
+
+## Минимальный рабочий сервис MLflow для теста (CI/CD)
+
+В секции `test-ml` вашего `.github/workflows/ci.yml` добавьте:
+
+```yaml
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    ports:
+      - 5001:5000
+    env:
+      BACKEND_STORE_URI: sqlite:///mlflow.db
+    options: >-
+      --health-cmd "curl --fail http://localhost:5000/ || exit 1"
+      --health-interval 5s
+      --health-timeout 2s
+      --health-retries 10
+```
+
+Если сервис стартует — добавляйте по одной переменной (ARTIFACT_ROOT, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) и проверяйте, на какой падает.
+
+## Типовые ошибки и их решение
+
+- **MLflow не стартует как сервис** — проверь переменные окружения, попробуй запустить только с `BACKEND_STORE_URI: sqlite:///mlflow.db` (см. выше).
+- **Django не видит базу** — проверь, что Postgres запущен, и параметры в `.env` совпадают с `docker-compose.yml`.
+- **train.py не видит MLflow** — убедись, что MLflow стартует как сервис в job test-ml, и порт совпадает (`5000` внутри контейнера, `5001` снаружи).
+
+## Пример секции services для MLflow в GitHub Actions (полная)
+
+```yaml
+services:
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.2
+    ports:
+      - 5001:5000
+    env:
+      BACKEND_STORE_URI: sqlite:///mlflow.db
+      ARTIFACT_ROOT: s3://mlflowtuesday-artifacts/artifacts
+      AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
+    options: >-
+      --health-cmd "curl --fail http://localhost:5000/ || exit 1"
+      --health-interval 5s
+      --health-timeout 2s
+      --health-retries 10
+```
+
+## Переменные окружения для CI/CD
+
+- Все секреты (ключи, токены) должны быть заданы через GitHub Secrets.
+- Для MLflow и S3:
+  - `YC_S3_KEY` — Access key для Yandex Object Storage
+  - `YC_S3_SECRET` — Secret key для Yandex Object Storage
+
+## Пример запуска обучения в CI/CD
+
+```yaml
+- name: Run ML Training
+  env:
+    MLFLOW_TRACKING_URI: http://localhost:5000
+    AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
+  run: |
+    PYTHONPATH=$(pwd) python unidoc/ml/train.py
+```
+
+---
+
+**Если сервис MLflow не стартует — смотри логи контейнера в Actions или пробуй минимальную конфигурацию (см. выше).**
 

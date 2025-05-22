@@ -55,9 +55,6 @@ jobs:
           - 5001:5000
         env:
           BACKEND_STORE_URI: sqlite:///mlflow.db
-          ARTIFACT_ROOT: s3://mlflowtuesday-artifacts/artifacts
-          AWS_ACCESS_KEY_ID: ${{ secrets.YC_S3_KEY }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.YC_S3_SECRET }}
         options: >-
           --health-cmd "curl --fail http://localhost:5000/ || exit 1"
           --health-interval 5s
