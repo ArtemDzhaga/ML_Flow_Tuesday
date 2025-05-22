@@ -5,6 +5,8 @@ DB_PASSWORD = os.getenv("DB_PASSWORD", "changeme")
 DB_HOST = os.getenv("DB_HOST", "postgres")
 DB_PORT = os.getenv("DB_PORT", "5432")
 import mlflow
+import joblib
+from pathlib import Path
 
 mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5001"))
 # Инициализация Django для standalone-скрипта
@@ -21,24 +23,39 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 from core.models import DocumentVersion
 
+# Создаем директорию для кэша
+CACHE_DIR = Path("cache")
+CACHE_DIR.mkdir(exist_ok=True)
 
 def load_data():
     """
     Загружает данные из DocumentVersion и формирует признаки и метки.
-    Признак: TF-IDF по тексту версии.
-    Метка: id проекта документа (или 0, если нет проекта).
+    Использует кэширование для ускорения загрузки.
     """
+    cache_file = CACHE_DIR / "data_cache.joblib"
+    
+    # Проверяем наличие кэша
+    if cache_file.exists():
+        print("Loading data from cache...")
+        return joblib.load(cache_file)
+    
+    print("Loading data from database...")
     versions = DocumentVersion.objects.select_related('document').all()
     if not versions.exists():
         print("В базе нет версий документов. Сгенерируйте тестовые данные!")
         return None, None
+    
     texts = []
     labels = []
     for v in versions:
         texts.append(v.content)
-        # Метка — id проекта, если есть, иначе 0
         labels.append(v.document.project.id if v.document and v.document.project else 0)
-    return texts, np.array(labels)
+    
+    data = (texts, np.array(labels))
+    
+    # Сохраняем в кэш
+    joblib.dump(data, cache_file)
+    return data
 
 def train_model(X_texts, y):
     """
