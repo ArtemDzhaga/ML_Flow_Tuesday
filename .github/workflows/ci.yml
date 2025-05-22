@@ -30,20 +30,6 @@ jobs:
 
   test-ml:
     needs: infra
-    services:
-      postgres:
-        image: postgres:15
-        ports:
-          - 5432:5432
-        env:
-          POSTGRES_DB: mlflow
-          POSTGRES_USER: mlflow
-          POSTGRES_PASSWORD: changeme
-        options: >-
-          --health-cmd "pg_isready -U mlflow"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 10
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
