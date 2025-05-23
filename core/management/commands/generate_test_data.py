@@ -1,152 +1,111 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-from core.models import Topic, Project, ProjectSettings, Task, TaskDetail, Subtask, Comment, Document, DocumentVersion, Template
-from datetime import datetime, timedelta
+from core.factories import (
+    UserFactory, TopicFactory, ProjectFactory, ProjectSettingsFactory,
+    TaskFactory, TaskDetailFactory, SubtaskFactory, CommentFactory,
+    DocumentFactory, DocumentVersionFactory, TemplateFactory
+)
 import random
 
 class Command(BaseCommand):
-    help = 'Генерирует тестовые данные для CRM системы авиакомпании'
+    help = 'Генерирует тестовые данные для системы документооборота'
 
     def handle(self, *args, **kwargs):
-        # Создаем суперпользователя, если его нет
+        self.stdout.write('Начинаем генерацию тестовых данных...')
+
+        # Создаем суперпользователя
         if not User.objects.filter(username='admin').exists():
             User.objects.create_superuser('admin', 'admin@example.com', 'admin123')
             self.stdout.write('Создан суперпользователь admin/admin123')
 
         # Создаем обычных пользователей
-        users = []
-        for i in range(3):
-            username = f'user{i+1}'
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(username, f'{username}@example.com', 'password123')
-                users.append(user)
-                self.stdout.write(f'Создан пользователь {username}/password123')
+        users = UserFactory.create_batch(5)
+        self.stdout.write(f'Создано {len(users)} пользователей')
 
-        # Создаем тему
-        topic = Topic.objects.create(
-            name='CRM Система Авиакомпании',
-            description='Разработка и внедрение CRM системы для управления клиентами авиакомпании'
-        )
-        self.stdout.write('Создана тема: CRM Система Авиакомпании')
+        # Создаем темы
+        topics = TopicFactory.create_batch(3)
+        self.stdout.write(f'Создано {len(topics)} тем')
 
-        # Создаем шаблоны
-        templates = [
-            Template.objects.create(
-                name='Шаблон требования',
-                content='''# Требования к функционалу
-## Описание
-{description}
-## Критерии приемки
-{criteria}''',
-                topic=topic
-            ),
-            Template.objects.create(
-                name='Шаблон документации',
-                content='''# Документация
-## Назначение
-{purpose}
-## Структура
-{structure}''',
-                topic=topic
-            )
-        ]
-        self.stdout.write('Созданы шаблоны документов')
+        # Создаем шаблоны для каждой темы
+        templates = []
+        for topic in topics:
+            topic_templates = TemplateFactory.create_batch(2, topic=topic)
+            templates.extend(topic_templates)
+        self.stdout.write(f'Создано {len(templates)} шаблонов')
 
-        # Создаем проекты
-        projects = [
-            Project.objects.create(
-                name='Анализ требований',
-                description='Сбор и анализ требований к CRM системе',
-                topic=topic
-            ),
-            Project.objects.create(
-                name='Разработка модуля бронирования',
-                description='Разработка модуля для управления бронированиями',
-                topic=topic
-            ),
-            Project.objects.create(
-                name='Интеграция с платежными системами',
-                description='Интеграция CRM с платежными системами',
-                topic=topic
-            )
-        ]
-        self.stdout.write('Созданы проекты')
+        # Создаем проекты для каждой темы
+        projects = []
+        for topic in topics:
+            topic_projects = ProjectFactory.create_batch(3, topic=topic)
+            projects.extend(topic_projects)
+        self.stdout.write(f'Создано {len(projects)} проектов')
 
-        # Создаем настройки проектов
+        # Создаем настройки для каждого проекта
         for project in projects:
-            ProjectSettings.objects.create(
+            ProjectSettingsFactory.create(
                 project=project,
-                notification_enabled=True,
                 template_default=random.choice(templates)
             )
         self.stdout.write('Созданы настройки проектов')
 
-        # Создаем задачи
+        # Создаем задачи для каждого проекта
         tasks = []
         for project in projects:
-            project_tasks = [
-                Task.objects.create(
-                    title=f'Задача {i+1} для {project.name}',
-                    description=f'Описание задачи {i+1} для проекта {project.name}',
-                    project=project,
-                    status=random.choice(['new', 'in_progress', 'review', 'done']),
-                    assigned_to=random.choice(users) if users else None
-                )
-                for i in range(3)
-            ]
-            tasks.extend(project_tasks)
-        self.stdout.write('Созданы задачи')
-
-        # Создаем детали задач
-        for task in tasks:
-            TaskDetail.objects.create(
-                task=task,
-                requirements=f'Требования для задачи {task.title}',
-                acceptance_criteria=f'Критерии приемки для задачи {task.title}'
+            project_tasks = TaskFactory.create_batch(
+                random.randint(3, 7),
+                project=project,
+                assigned_to=random.choice(users)
             )
+            tasks.extend(project_tasks)
+        self.stdout.write(f'Создано {len(tasks)} задач')
+
+        # Создаем детали для каждой задачи
+        for task in tasks:
+            TaskDetailFactory.create(task=task)
         self.stdout.write('Созданы детали задач')
 
-        # Создаем подзадачи
+        # Создаем подзадачи для каждой задачи
+        subtasks = []
         for task in tasks:
-            for i in range(2):
-                Subtask.objects.create(
-                    title=f'Подзадача {i+1} для {task.title}',
-                    description=f'Описание подзадачи {i+1} для задачи {task.title}',
-                    task=task,
-                    status=random.choice(['new', 'in_progress', 'review', 'done'])
-                )
-        self.stdout.write('Созданы подзадачи')
+            task_subtasks = SubtaskFactory.create_batch(
+                random.randint(1, 4),
+                task=task
+            )
+            subtasks.extend(task_subtasks)
+        self.stdout.write(f'Создано {len(subtasks)} подзадач')
 
-        # Создаем комментарии
+        # Создаем комментарии для задач и подзадач
         for task in tasks:
-            for i in range(2):
-                Comment.objects.create(
-                    content=f'Комментарий {i+1} к задаче {task.title}',
-                    task=task,
-                    author=random.choice(users) if users else None
-                )
+            CommentFactory.create_batch(
+                random.randint(2, 5),
+                task=task,
+                author=random.choice(users)
+            )
+        for subtask in subtasks:
+            CommentFactory.create_batch(
+                random.randint(1, 3),
+                subtask=subtask,
+                author=random.choice(users)
+            )
         self.stdout.write('Созданы комментарии')
 
-        # Создаем документы
+        # Создаем документы для каждого проекта
         documents = []
         for project in projects:
-            doc = Document.objects.create(
-                title=f'Документация проекта {project.name}',
-                content=f'Содержание документации проекта {project.name}',
+            project_docs = DocumentFactory.create_batch(
+                random.randint(2, 5),
                 project=project
             )
-            documents.append(doc)
-        self.stdout.write('Созданы документы')
+            documents.extend(project_docs)
+        self.stdout.write(f'Создано {len(documents)} документов')
 
-        # Создаем версии документов
+        # Создаем версии для каждого документа
         for doc in documents:
-            for i in range(2):
-                DocumentVersion.objects.create(
-                    document=doc,
-                    content=f'Версия {i+1} документа {doc.title}',
-                    version_number=i+1,
-                    created_by=random.choice(users) if users else None
-                )
+            DocumentVersionFactory.create_batch(
+                random.randint(1, 5),
+                document=doc,
+                created_by=random.choice(users)
+            )
         self.stdout.write('Созданы версии документов')
 
         self.stdout.write(self.style.SUCCESS('Тестовые данные успешно созданы!')) 
