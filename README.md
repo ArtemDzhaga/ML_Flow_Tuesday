@@ -1,3 +1,10 @@
+Вам для улыбки:
+
+![Jokes Card](https://readme-jokes.vercel.app/api)
+
+А теперь к серьезному: 
+---
+
 # UniDoc - Документооборот с ML
 
 ## Что это за проект?
